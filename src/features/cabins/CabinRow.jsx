@@ -1,4 +1,9 @@
 import styled from "styled-components";
+import PropTypes from "prop-types";
+import { formatCurrency } from "../../utils/helpers";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { deleteCabin } from "../../services/apiCabnis";
+import toast from "react-hot-toast";
 
 const TableRow = styled.div`
   display: grid;
@@ -38,3 +43,69 @@ const Discount = styled.div`
   font-weight: 500;
   color: var(--color-green-700);
 `;
+
+const Button = styled.button`
+  background-color: var(--color-brand-600);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+  font-size: 1.4rem;
+  color: var(--color-brand-50);
+  cursor: pointer;
+  padding: 0.8rem 1.6rem;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: var(--color-brand-50);
+    color: red;
+  }
+`;
+
+const CabinRow = ({ data }) => {
+  const {
+    id: cabinId,
+    name,
+    maxCapacity,
+    regularPrice,
+    discount,
+    image,
+  } = data;
+
+  const queryClient = useQueryClient();
+  const { mutate: removeCabin, isPending: removingCabin } = useMutation({
+    mutationFn: deleteCabin,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["cabins"]);
+      toast.success("Cabin deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(`${error}`);
+    },
+  });
+
+  return (
+    <TableRow role="row">
+      <Img src={image} alt={name} />
+      <Cabin>{name}</Cabin>
+      <div>{maxCapacity}</div>
+      <Price>{formatCurrency(regularPrice)}</Price>
+      <Discount>{formatCurrency(discount)}</Discount>
+      <Button disabled={removingCabin} onClick={() => removeCabin(cabinId)}>
+        Delete
+      </Button>
+    </TableRow>
+  );
+};
+
+CabinRow.propTypes = {
+  data: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    maxCapacity: PropTypes.number.isRequired,
+    regularPrice: PropTypes.number.isRequired,
+    discount: PropTypes.number,
+    image: PropTypes.string.isRequired,
+  }).isRequired,
+};
+
+export default CabinRow;
